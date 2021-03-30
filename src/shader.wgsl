@@ -1,13 +1,11 @@
-[[builtin(vertex_index)]]
-var<in> in_vertex_index: u32;
+[[location(0)]]
+var<in> in_vertex_index: vec3<f32>;
 [[builtin(position)]]
 var<out> out_pos: vec4<f32>;
 
 [[stage(vertex)]]
 fn vs_main() {
-    var x: f32 = f32(i32(in_vertex_index) - 1) / 2.0;
-    var y: f32 = f32(i32(in_vertex_index & 1) * 2 - 1) / 2.0;
-    out_pos = vec4<f32>(x, y, 0.0, 1.0);
+  out_pos = vec4<f32>(in_vertex_index, 1.0);
 }
 
 [[location(0)]]

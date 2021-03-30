@@ -1,10 +1,36 @@
-use anyhow::*;
+use anyhow::Result;
+use bytemuck::{Pod, Zeroable};
 use futures::executor::block_on;
+use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use winit::{
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder},
 };
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+struct Vertex {
+    pos: [f32; 3],
+}
+
+struct Art {
+    vertices: Vec<Vertex>,
+}
+
+impl Art {
+    fn lines() -> Self {
+        let vertices = vec![
+            Vertex {
+                pos: [-1.0, 1.0, 0.0],
+            },
+            Vertex {
+                pos: [0.0, 0.0, 0.0],
+            },
+        ];
+        Self { vertices }
+    }
+}
 
 struct App {
     instance: wgpu::Instance,
@@ -13,6 +39,7 @@ struct App {
     queue: wgpu::Queue,
     sc: wgpu::SwapChain,
     pipeline: wgpu::RenderPipeline,
+    vertex_buffer: wgpu::Buffer,
 }
 
 // 我想渲染一段直线
@@ -40,14 +67,6 @@ impl App {
             .await
             .unwrap();
 
-        let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
-            label: None,
-            flags: wgpu::ShaderFlags::all(),
-            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
-                "shader.wgsl"
-            ))),
-        });
-
         let sc_format = adapter.get_swap_chain_preferred_format(&surface);
         let sc = device.create_swap_chain(
             &surface,
@@ -60,12 +79,30 @@ impl App {
             },
         );
 
+        let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+            label: None,
+            flags: wgpu::ShaderFlags::all(),
+            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
+                "shader.wgsl"
+            ))),
+        });
+        let art = Art::lines();
+        let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            usage: wgpu::BufferUsage::VERTEX,
+            contents: &bytemuck::cast_slice(&art.vertices),
+        });
+
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
             layout: None,
             vertex: wgpu::VertexState {
                 module: &shader,
-                buffers: &[],
+                buffers: &[wgpu::VertexBufferLayout {
+                    step_mode: wgpu::InputStepMode::Vertex,
+                    attributes: &wgpu::vertex_attr_array![0 => Float3],
+                    array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+                }],
                 entry_point: "vs_main",
             },
             fragment: Some(wgpu::FragmentState {
@@ -74,7 +111,7 @@ impl App {
                 targets: &[sc_format.into()],
             }),
             primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::LineStrip,
+                topology: wgpu::PrimitiveTopology::LineList,
                 ..Default::default()
             },
             depth_stencil: None,
@@ -88,6 +125,7 @@ impl App {
             queue,
             sc,
             pipeline,
+            vertex_buffer,
         })
     }
 
@@ -111,7 +149,8 @@ impl App {
                 depth_stencil_attachment: None,
             });
             rpass.set_pipeline(&self.pipeline);
-            rpass.draw(0..3, 0..1);
+            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            rpass.draw(0..2, 0..1);
         }
 
         self.queue.submit(Some(encoder.finish()));
@@ -125,10 +164,6 @@ fn main() {
     let app = block_on(App::new(&window)).unwrap();
 
     event_loop.run(move |event, _, control_flow| {
-        // ControlFlow::Poll continuously runs the event loop, even if the OS hasn't
-        // dispatched any events. This is ideal for games and similar applications.
-        *control_flow = ControlFlow::Poll;
-
         // ControlFlow::Wait pauses the event loop if no events are available to process.
         // This is ideal for non-game applications that only update in response to user
         // input, and uses significantly less power/CPU time than ControlFlow::Poll.
@@ -159,22 +194,10 @@ fn main() {
                 _ => {}
             },
             Event::MainEventsCleared => {
-                // Application update code.
-
-                // Queue a RedrawRequested event.
-                //
-                // You only need to call this if you've determined that you need to redraw, in
-                // applications which do not always need to. Applications that redraw continuously
-                // can just render here instead.
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {
                 app.render().unwrap();
-                // Redraw the application.
-                //
-                // It's preferable for applications that do not render continuously to render in
-                // this event rather than in MainEventsCleared, since rendering in here allows
-                // the program to gracefully handle redraws requested by the OS.
             }
             _ => (),
         }
