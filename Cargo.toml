@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 winit = "0.24"
 wgpu = "0.7" 
-bytemuck =  "1.5"
+bytemuck = {version = "1.5", features = ["derive"]}
 rand = "0.8"
 futures = "0.3"
 anyhow = "1.0"
