@@ -1,16 +1,17 @@
-use nannou::prelude::*;
 use nannou::noise::*;
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();
 }
 
 struct Model {
-    logo: ByteDance,
+    logos: Vec<ByteDance>,
     noise: Perlin,
 }
 
 struct ByteDance {
+    ct: Vec2,
     b: [Point2; 4],
     y: [Point2; 4],
     t: [Point2; 4],
@@ -19,11 +20,13 @@ struct ByteDance {
     yw: Vec2,
     tw: Vec2,
     ew: Vec2,
+    f: f32,
 }
 
 impl ByteDance {
     pub fn new(x: f32, y: f32) -> ByteDance {
         ByteDance {
+            ct: Vec2::new(x, y),
             b: [
                 pt2(x - 125.0, y - 133.0),
                 pt2(x - 125.0, y + 133.0),
@@ -52,21 +55,31 @@ impl ByteDance {
                 pt2(x + 125.0, y - 168.0),
             ],
             ew: Vec2::new(65.0, 336.0),
+            f: 1.0,
         }
     }
 
     pub fn resize(&mut self, f: f32) {
+        self.f = 
         for i in self.b.iter_mut() {
+            *i -= self.ct;
             *i *= f;
+            *i += self.ct;
         }
         for i in self.y.iter_mut() {
+            *i -= self.ct;
             *i *= f;
+            *i += self.ct;
         }
         for i in self.t.iter_mut() {
+            *i -= self.ct;
             *i *= f;
+            *i += self.ct;
         }
         for i in self.e.iter_mut() {
+            *i -= self.ct;
             *i *= f;
+            *i += self.ct;
         }
 
         self.bw *= f;
@@ -74,6 +87,46 @@ impl ByteDance {
         self.tw *= f;
         self.ew *= f;
     }
+
+    // pub fn breath(&mut self, sn: f64, f: f32, noise: &Perlin) {
+    //     self.breath_b(sn, f, noise);
+    //     self.breath_y(sn, f, noise);
+    //     self.breath_t(sn, f, noise);
+    //     self.breath_e(sn, f, noise);
+    // }
+
+    // fn breath_b(&mut self, sn: f64, f: f32, noise: &Perlin) {
+    //     let noise = noise.get([5.9 as f64, 6.0 as f64, 1.0]) as f32 * f * sn as f32;
+    //     self.bw.x += 2.0 * noise;
+    //     self.b[0].x += noise;
+    //     self.b[1].x += noise;
+    //     self.b[2].x -= noise;
+    //     self.b[3].x -= noise;
+    // }
+    // fn breath_y(&mut self, sn: f64, f: f32, noise: &Perlin) {
+    //     let noise = noise.get([self.y[0].x as f64, self.y[0].y as f64, 1.0]) as f32 * f * sn as f32;
+    //     self.yw.x += 2.0 * noise;
+    //     self.y[0].x += noise;
+    //     self.y[1].x += noise;
+    //     self.y[2].x -= noise;
+    //     self.y[3].x -= noise;
+    // }
+    // fn breath_t(&mut self, sn: f64, f: f32, noise: &Perlin) {
+    //     let noise = noise.get([sn * self.t[0].x as f64, sn * self.t[0].y as f64, 1.0]) as f32 * f;
+    //     self.tw.x += 2.0 * noise;
+    //     self.t[0].x += noise;
+    //     self.t[1].x += noise;
+    //     self.t[2].x -= noise;
+    //     self.t[3].x -= noise;
+    // }
+    // fn breath_e(&mut self, sn: f64, f: f32, noise: &Perlin) {
+    //     let noise = noise.get([sn * self.e[0].x as f64, sn * self.e[0].y as f64, 1.0]) as f32 * f;
+    //     self.ew.x += 2.0 * noise;
+    //     self.e[0].x += noise;
+    //     self.e[1].x += noise;
+    //     self.e[2].x -= noise;
+    //     self.e[3].x -= noise;
+    // }
 
     pub fn draw(&self, draw: &Draw) {
         // 左数第一个
@@ -105,35 +158,41 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    // for i in 0..50 {
-    //     let i = i- 25;
-    //     let mut b = ByteDance::new(0.0 + i as f32 * 190.0, 0.0);
-    //     b.resize(0.5);
-    //     logos.push(b);
-    let mut logo = ByteDance::new(0.0, 0.0);
-    logo.resize(1.5);
-    // }
+    let mut logos = Vec::new();
+    for i in 0..25 {
+        let i = i - 12;
+        for j in 0..25 {
+            let j = j - 12;
+            let mut b = ByteDance::new(0.0 + i as f32 * 40.0, 0.0 + j as f32 * 40.0);
+            b.resize(0.1);
+            logos.push(b);
+        }
+    }
 
     let noise = Perlin::new();
 
-    Model { logo, noise }
+    Model { logos, noise }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
-    let noise = model.noise.get([model.logo.bw.x as f64, model.logo.bw.y as f64]) as f32 * 10.0;
-    println!("noise: {}", noise);
-    model.logo.bw.x += 2.0 * noise;
-    model.logo.b[0].x += noise;
-    model.logo.b[1].x += noise;
-    model.logo.b[2].x -= noise;
-    model.logo.b[3].x -= noise;
+fn update(app: &App, model: &mut Model, _update: Update) {
+    let elapsed = app.elapsed_frames() as f32 / 120.0;
+    // if elapsed < 1.0 {
+    //     // do nothing
+    // } else {
+    let sn = (elapsed.cos() + 1.0) / 100.0;
+    for i in model.logos.iter_mut() {
+        i.resize(sn);
+    }
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.background().color(WHITE);
     // draw.rect().x_y(0.0, 0.0).w_h(100.0, 100.0).color(PLUM);
-    model.logo.draw(&draw);
+    // model.logo.draw(&draw);
+    for i in model.logos.iter() {
+        i.draw(&draw);
+    }
 
     draw.to_frame(app, &frame).unwrap();
 }
