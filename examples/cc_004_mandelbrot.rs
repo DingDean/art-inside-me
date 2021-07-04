@@ -40,7 +40,7 @@ impl MandelbrotSet {
     pub fn is_in_set(&self, pt: &Point2) -> i32 {
         let mut z = self.z.clone();
         for i in 0..self.max_ite {
-            z = complex_square(&z) + pt.clone();
+            z = 0.8 * complex_square(&z) + pt.clone();
             if z.length() > self.thredhold {
                 return i;
             }
@@ -80,7 +80,7 @@ fn model(app: &App) -> Model {
 
     let mut vertices = Vec::new();
 
-    let hbase = 5.0 * mandelbrot.max_ite as f32;
+    let hbase = 3.0 * mandelbrot.max_ite as f32;
 
     for i in -half_width..half_width {
         for j in -half_height..half_height {
