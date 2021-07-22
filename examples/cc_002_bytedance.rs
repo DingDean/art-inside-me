@@ -20,7 +20,7 @@ struct ByteDance {
     yw: Vec2,
     tw: Vec2,
     ew: Vec2,
-    f: f32,
+    // f: f32,
 }
 
 impl ByteDance {
@@ -55,12 +55,11 @@ impl ByteDance {
                 pt2(x + 125.0, y - 168.0),
             ],
             ew: Vec2::new(65.0, 336.0),
-            f: 1.0,
+            // f: 1.0,
         }
     }
 
     pub fn resize(&mut self, f: f32) {
-        self.f = 
         for i in self.b.iter_mut() {
             *i -= self.ct;
             *i *= f;
@@ -175,14 +174,14 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
-    let elapsed = app.elapsed_frames() as f32 / 120.0;
+    // let elapsed = app.elapsed_frames() as f32 / 120.0;
     // if elapsed < 1.0 {
     //     // do nothing
     // } else {
-    let sn = (elapsed.cos() + 1.0) / 100.0;
-    for i in model.logos.iter_mut() {
-        i.resize(sn);
-    }
+    // let sn = (elapsed.cos() + 1.0) / 100.0;
+    // for i in model.logos.iter_mut() {
+    //     i.resize(sn);
+    // }
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
