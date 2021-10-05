@@ -1,27 +1,29 @@
 use nannou::noise::*;
 use nannou::prelude::*;
+use nannou::ui::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();
 }
 
-struct Model {
-    dimension: (i32, i32),
-    heightmap: Vec<f64>,
-}
-
 struct Octave {
     /// frequency
     f: f64,
-    /// Seed for Perlin
-    s: u32,
     noise: Perlin,
 }
 
 impl Octave {
     fn new(s: u32, f: f64) -> Self {
         let noise = Perlin::new().set_seed(s);
-        Self { f, s, noise }
+        Self { f, noise }
+    }
+
+    fn set_seed(&mut self, s: u32) {
+        self.noise = Perlin::new().set_seed(s);
+    }
+
+    fn seed(&self) -> u32 {
+        self.noise.seed()
     }
 
     fn get(&self, x: f64, y: f64) -> f64 {
@@ -29,47 +31,91 @@ impl Octave {
     }
 }
 
+widget_ids! {
+    struct Ids {
+        seed
+    }
+}
+
+struct Model {
+    dimension: (i32, i32),
+    heightmap: Vec<f64>,
+    base_oct: Octave,
+    ids: Ids,
+    ui: Ui,
+}
+
+impl Model {
+    fn update_heightmap(&mut self) {
+        let x = self.dimension.0 / 2;
+        let y = self.dimension.1 / 2;
+
+        self.heightmap = {
+            let mut output = Vec::new();
+            let o1 = &self.base_oct;
+            let o2 = Octave::new(15, 0.08);
+            let o3 = Octave::new(20, 32.2);
+            for i in -x..x {
+                for j in -y..y {
+                    let x = pt2(i as f32, j as f32);
+                    let h = (10.5 * o1.get(i.into(), j.into())
+                        + 0.5 * o2.get(i.into(), j.into())
+                        + 0.3 * o3.get(i.into(), j.into()))
+                        / 11.3;
+                    // + 0.5 * (noise.get([x.x as f64 * 1.1, x.y as f64 * 3.0]) + 1.0) / 2.0;
+                    // let h = noise.get([(i as f64).sin(), j as f64 / haft_y as f64]);
+                    // let h = noise.get([i as f64 / haft_y as f64, (j as f64).sin()]);
+                    output.push(h);
+                }
+            }
+            output
+        };
+    }
+}
+
 fn model(app: &App) -> Model {
-    app.set_loop_mode(LoopMode::NTimes {
-        number_of_updates: 1,
-    });
+    app.set_loop_mode(LoopMode::Wait);
     app.new_window()
         .size(1024, 1024)
         .view(view)
         .build()
         .unwrap();
 
-    let dimension = (256, 256);
-    let half_x = dimension.0 / 2;
-    let haft_y = dimension.1 / 2;
-    let heightmap = {
-        let mut output = Vec::new();
-        let o1 = Octave::new(1, 0.01);
-        let o2 = Octave::new(15, 0.08);
-        let o3 = Octave::new(20, 32.2);
-        for i in -half_x..half_x {
-            for j in -haft_y..haft_y {
-                let x = pt2(i as f32, j as f32);
-                let h = (10.5 * o1.get(i.into(), j.into())
-                    + 0.5 * o2.get(i.into(), j.into())
-                    + 0.3 * o3.get(i.into(), j.into()))
-                    / 11.3;
-                // + 0.5 * (noise.get([x.x as f64 * 1.1, x.y as f64 * 3.0]) + 1.0) / 2.0;
-                // let h = noise.get([(i as f64).sin(), j as f64 / haft_y as f64]);
-                // let h = noise.get([i as f64 / haft_y as f64, (j as f64).sin()]);
-                output.push(h);
-            }
-        }
-        output
-    };
+    let heightmap = Vec::new();
+
+    let mut ui = app.new_ui().build().unwrap();
+    let ids = Ids::new(ui.widget_id_generator());
+
+    let base_oct = Octave::new(1, 0.01);
+    let dimension = (64, 64);
 
     Model {
+        ui,
+        ids,
+        base_oct,
         dimension,
         heightmap,
     }
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {}
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    {
+        let ui = &mut model.ui.set_widgets();
+        for seed in widget::Slider::new(model.base_oct.seed() as f32, 0.0, 100.0)
+            .w_h(200.0, 30.0)
+            .label("seed")
+            .border(0.0)
+            .label_font_size(15)
+            .rgb(0.3, 0.3, 0.3)
+            .top_left_with_margin(20.0)
+            .set(model.ids.seed, ui)
+        {
+            model.base_oct.set_seed(seed as u32);
+        }
+    }
+
+    model.update_heightmap();
+}
 
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
@@ -98,4 +144,5 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
     }
     draw.to_frame(app, &frame).unwrap();
+    model.ui.draw_to_frame(app, &frame).unwrap();
 }
