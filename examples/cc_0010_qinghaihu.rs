@@ -7,8 +7,26 @@ fn main() {
 
 struct Model {
     dimension: (i32, i32),
-    noise: Perlin,
     heightmap: Vec<f64>,
+}
+
+struct Octave {
+    /// frequency
+    f: f64,
+    /// Seed for Perlin
+    s: u32,
+    noise: Perlin,
+}
+
+impl Octave {
+    fn new(s: u32, f: f64) -> Self {
+        let noise = Perlin::new().set_seed(s);
+        Self { f, s, noise }
+    }
+
+    fn get(&self, x: f64, y: f64) -> f64 {
+        (self.noise.get([x * self.f, y * self.f]) + 1.0) / 2.0
+    }
 }
 
 fn model(app: &App) -> Model {
@@ -22,22 +40,23 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     let dimension = (256, 256);
-    let noise = Perlin::new().set_seed(45);
     let half_x = dimension.0 / 2;
     let haft_y = dimension.1 / 2;
     let heightmap = {
         let mut output = Vec::new();
+        let o1 = Octave::new(1, 0.01);
+        let o2 = Octave::new(15, 0.08);
+        let o3 = Octave::new(20, 32.2);
         for i in -half_x..half_x {
             for j in -haft_y..haft_y {
                 let x = pt2(i as f32, j as f32);
-                let h = (5.5 * (noise.get([x.x as f64 * 0.02, x.y as f64 * 0.02]) + 1.0) / 2.0
-                    + 0.5 * (noise.get([x.x as f64 * 0.08, x.y as f64 * 0.08]) + 1.0) / 2.0
-                    + 0.1 * (noise.get([x.x as f64 * 2.2, x.y as f64 * 2.2]) + 1.0) / 2.0)
-                    / 6.1;
+                let h = (10.5 * o1.get(i.into(), j.into())
+                    + 0.5 * o2.get(i.into(), j.into())
+                    + 0.3 * o3.get(i.into(), j.into()))
+                    / 11.3;
                 // + 0.5 * (noise.get([x.x as f64 * 1.1, x.y as f64 * 3.0]) + 1.0) / 2.0;
                 // let h = noise.get([(i as f64).sin(), j as f64 / haft_y as f64]);
                 // let h = noise.get([i as f64 / haft_y as f64, (j as f64).sin()]);
-                println!("{}", h);
                 output.push(h);
             }
         }
@@ -45,7 +64,6 @@ fn model(app: &App) -> Model {
     };
 
     Model {
-        noise,
         dimension,
         heightmap,
     }
@@ -77,27 +95,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let base_color = srgba(46.0 / 256.0, 89.0 / 256.0, 167.0 / 256.0, 1.0 * n);
 
             draw.rect().w_h(width, width).x_y(x, y).color(base_color);
-            // .stroke_weight(2.0)
-            // .stroke(stroke_color);
         }
     }
-
-    // draw m x n grids
-    // for i in 1..m {
-    //     let step = (i as f32) * w / (m as f32);
-    //     draw.line()
-    //         .start(pt2(-w / 2.0 + step, -h / 2.0))
-    //         .end(pt2(-w / 2.0 + step, h / 2.0))
-    //         .color(RED);
-    // }
-
-    // for i in 1..n {
-    //     let step = (i as f32) * w / (n as f32);
-    //     draw.line()
-    //         .start(pt2(-w / 2.0, -h / 2.0 + step))
-    //         .end(pt2(w / 2.0, -h / 2.0 + step))
-    //         .color(RED);
-    // }
-
     draw.to_frame(app, &frame).unwrap();
 }
