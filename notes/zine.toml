@@ -1,0 +1,12 @@
+
+[site]
+url = "https://dingdean.github.io/art-inside-me/"
+name = "notes"
+title = "notes"
+description = ""
+
+[[season]]
+slug = "s1"
+number = 1
+title = "Season 1"
+path = "content/season-1"
