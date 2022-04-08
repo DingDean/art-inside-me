@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>notes</title>
+    <subtitle></subtitle>
+    <updated>2022-04-08T09:45:13.411696293+00:00</updated>
+    <id>https://dingdean.github.io/art-inside-me/</id>
+    <link href="https://dingdean.github.io/art-inside-me//feed.xml" rel="self" type="application/atom+xml" />
+    <link href="https://dingdean.github.io/art-inside-me/" rel="alternate" type="text/html" />
+    <generator uri="https://github.com/zineland/zine" version="0.3.1">zine</generator>
+    <author>
+        <name>notes</name>
+        <uri>https://dingdean.github.io/art-inside-me/</uri>
+    </author>
+
+    <entry>
+        <title>First article</title>
+        <link rel="alternate" href="https://dingdean.github.io/art-inside-me//s1/1" type="text/html" title="First article" />
+        <published>2022-04-08</published>
+        <updated>2022-04-08</updated>
+        <id>https://dingdean.github.io/art-inside-me//s1/1</id>
+        <content type="html" xml:base="https://dingdean.github.io/art-inside-me//s1/1">
+            <![CDATA[<p>Hello Zine</p>
+]]>
+        </content>
+
+        <author>
+            <name></name>
+        </author>
+    </entry>
+    </feed>
